@@ -119,7 +119,6 @@ export default function FormScreen({ role, onBack, onSubmit }) {
         if (SCRIPT_URL && SCRIPT_URL.includes('/exec')) {
           await fetch(SCRIPT_URL, {
             method: 'POST',
-            mode: 'no-cors',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ role: role.replace(/-/g, '_'), ...values }),
           })

@@ -42,7 +42,7 @@ function App() {
         <div className="header-title-bar">
           <div className="header-inner">
             <div className="header-title-content">
-              <h1>IEEE Workspace SOU SB</h1>
+              <h1>IEEE SOU SB Workspace</h1>
               <span className="header-subtitle-pill">Attendance Portal</span>
             </div>
           </div>

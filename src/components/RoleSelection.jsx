@@ -53,8 +53,7 @@ export default function RoleSelection({ onSelect }) {
         <UserCheck size={16} />
         Mark Your Presence
       </div>
-      <h2>Welcome to the IEEE Workspace</h2>
-      <p className="subtitle">Silver Oak University Student Branch</p>
+      <h2>Welcome to the IEEE Silver Oak University Student Branch Workspace</h2>
       <p className="subtitle-small">Please select who you are to continue.</p>
 
       <div className="role-grid">

@@ -30,7 +30,7 @@ const FORM_CONFIGS = {
     icon: BookOpen,
     fields: [
       { name: 'name', label: 'Full Name', type: 'text', placeholder: 'Enter your full name', required: true },
-      { name: 'membershipId', label: 'IEEE Membership ID', type: 'text', placeholder: 'e.g., 12345678', required: true },
+      { name: 'contactNo', label: 'Contact No', type: 'tel', placeholder: '10-digit mobile number', required: true, pattern: '^[0-9]{10}$', maxLength: 10 },
     ],
   },
   'sou-professor': {
@@ -50,7 +50,7 @@ const FORM_CONFIGS = {
       { name: 'name', label: 'Full Name', type: 'text', placeholder: 'Enter your full name', required: true },
       { name: 'email', label: 'Email Address', type: 'email', placeholder: 'visitor@example.com', required: true },
       { name: 'contactNo', label: 'Contact No', type: 'tel', placeholder: '10-digit mobile number', required: true },
-      { name: 'designation', label: 'Designation', type: 'text', placeholder: 'e.g., Software Engineer', required: true },
+      { name: 'designation', label: 'Designation', type: 'text', placeholder: 'e.g., Software Engineer', required: false },
     ],
   },
 }
@@ -77,7 +77,8 @@ export default function FormScreen({ role, onBack, onSubmit }) {
   const [values, setValues] = useState(initialValues)
   const [errors, setErrors] = useState({})
   const [touched, setTouched] = useState({})
-  const [isSubmitting, setIsSubmitting] = useState(false) // ✅ NEW
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [serverFormError, setServerFormError] = useState('') // New state for general API errors
 
   const handleChange = (name, value) => {
     setValues((prev) => ({ ...prev, [name]: value }))
@@ -111,21 +112,41 @@ export default function FormScreen({ role, onBack, onSubmit }) {
     setTouched(
       config.fields.reduce((acc, f) => ({ ...acc, [f.name]: true }), {})
     )
+    setServerFormError('') // Reset server error on new submission
 
     if (!hasErrors) {
       setIsSubmitting(true)
       try {
         if (SCRIPT_URL) {
-          await fetch(SCRIPT_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify({ role: role.replace(/-/g, '_'), ...values }),
+          const payloadStr = JSON.stringify({ role: role.replace(/-/g, '_'), ...values });
+          const url = `${SCRIPT_URL}?payload=${encodeURIComponent(payloadStr)}`;
+          
+          const res = await fetch(url, {
+            method: 'GET',
           })
+          const responseData = await res.json()
+          
+          if (responseData.status === 'error') {
+            const errorMsg = responseData.message || 'Validation failed on server.';
+            
+            // Map known validation errors to their specific fields professionally
+            if (role === 'ieee-student') {
+              setErrors((prev) => ({ ...prev, membershipId: errorMsg }));
+            } else if (role === 'ieee-faculty') {
+              setErrors((prev) => ({ ...prev, contactNo: errorMsg }));
+            } else {
+              // Fallback for an unknown general server error
+              setServerFormError(errorMsg);
+            }
+            
+            setIsSubmitting(false);
+            return;
+          }
         }
         onSubmit(values)
       } catch (err) {
         console.error('Submission error:', err)
-        onSubmit(values)
+        setServerFormError('Failed to connect to the server. Please check your internet connection or try again.')
       } finally {
         setIsSubmitting(false)
       }
@@ -144,16 +165,30 @@ export default function FormScreen({ role, onBack, onSubmit }) {
         Back
       </button>
 
-      <div className="form-card">
+      <div className="form-card" style={{ position: 'relative', overflow: 'hidden' }}>
+        {isSubmitting && (
+          <div className="loader-overlay">
+            <div className="spinner"></div>
+            <p>Registering Log...</p>
+          </div>
+        )}
+
         <div className="form-role-badge">
           <IconComp size={15} />
           {config.label}
         </div>
 
-        <h2 className="form-title">Register Attendance</h2>
+        <h2 className="form-title">Register Log</h2>
         <p className="form-subtitle">Fill in your details below to log your visit.</p>
 
-        <form onSubmit={handleSubmit} noValidate>
+        {serverFormError && (
+          <div className="error-message" role="alert" style={{ marginBottom: '1rem', padding: '0.75rem', backgroundColor: '#fef2f2', border: '1px solid #f87171', borderRadius: '0.375rem', color: '#b91c1c', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <AlertCircle size={18} />
+            <span>{serverFormError}</span>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} noValidate autoComplete="off">
           {config.fields.map((field) => (
             <div className="form-group" key={field.name}>
               <label className="form-label" htmlFor={`field-${field.name}`}>
@@ -202,9 +237,9 @@ export default function FormScreen({ role, onBack, onSubmit }) {
             </div>
           ))}
 
-          {/* ✅ UPDATED button — disabled while submitting */}
+          {/* Submit button — disables while submitting but relies on UI overlay for loading effect */}
           <button type="submit" className="submit-btn" id="submit-button" disabled={isSubmitting}>
-            {isSubmitting ? 'Submitting...' : 'Submit Attendance'}
+            Submit
           </button>
         </form>
       </div>

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://ieeesousblog.vercel.app/sitemap.xml
